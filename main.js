@@ -3,6 +3,8 @@ const express = require('express')
 const cors = require('cors')
 const { Sequelize, DataTypes } = require('sequelize')
 
+const utils = require('./utils')
+
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: './.sqlite3',
@@ -44,16 +46,31 @@ function defineModels() {
       defaultValue: 0,
       allowNull: false
     },
+    gold: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false
+    },
+    resources: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false
+    },
     lastBuildInteractionUnixTime: {
       type: DataTypes.STRING,
       defaultValue: '0',
       allowNull: false
     },
-    gold: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
+    lastFactionChangeUnixTime: {
+      type: DataTypes.STRING,
+      defaultValue: '0',
       allowNull: false
-    }
+    },
+    lastGatherUnixTime: {
+      type: DataTypes.STRING,
+      defaultValue: '0',
+      allowNull: false
+    },
   })
 }
 
@@ -65,8 +82,8 @@ async function main() {
   await sequelize.authenticate()
   
   defineModels()
-  await sequelize.sync()
-
+  await sequelize.sync({ force: false })
+  
   console.log('Connected to database')
   console.log('Running on port 4848') 
 }
@@ -99,14 +116,83 @@ app.post('/choose-faction', async (req, res) => {
       discordId,
       faction: newFaction
     })
+
+    res.json({
+      status: 'success'
+    })
   }
   else {
+    const cTime = new Date().getTime()
+    const lastChange = parseInt(user.lastFactionChangeUnixTime)
+
+    const _30days = 1000 * 60 * 60 * 24 * 30
+
+    console.log(`Current Time: ${cTime} Last Change: ${lastChange}`)
+
+    if (cTime - lastChange < _30days) {
+      res.json({
+        status: 'error',
+        message: `You must wait \`${utils.periodToString(_30days - (cTime - lastChange))}\` before changing factions again`
+      })
+
+      return
+    }
+
     user.faction = newFaction
+    user.lastFactionChangeUnixTime = cTime.toString()
+
     await user.save()
+
+    res.json({
+      status: 'success'
+    })
+  }
+})
+
+
+app.post('/gather', async (req, res) => {
+  const discordId = req.body.discordId
+
+  const user = await sequelize.models.User.findOne({
+    where: {
+      discordId
+    }
+  })
+
+  if (user === null) {
+    res.json({
+      status: 'error',
+      message: 'Account not existing'
+    })
+
+    return
+  }
+  
+  const cTime = new Date().getTime()
+  const lastGather = parseInt(user.lastGatherUnixTime)
+
+  const _1hour = 1000 * 60 * 60
+
+  console.log(`Current Time: ${cTime} Last Gather: ${lastGather}`)
+
+  if (cTime - lastGather < _1hour) {
+    res.json({
+      status: 'error',
+      message: `You must wait \`${utils.periodToString(_1hour - (cTime - lastGather))}\` before gathering again`
+    })
+
+    return
   }
 
+  const gatheredAmount = (Math.random() * 100).toFixed(0)
+
+  user.resources += gatheredAmount
+  user.lastGatherUnixTime = cTime.toString()
+  await user.save()
+
   res.json({
-    'success': true
+    status: 'success',
+    amount: gatheredAmount
   })
 })
 
