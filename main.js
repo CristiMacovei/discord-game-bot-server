@@ -21,15 +21,10 @@ function defineModels() {
       allowNull: false,
       unique: true
     },
-    isAdmin: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false
-    },
-    isMasterAdmin: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false
+    adminPermissions: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false,
     },
     faction: {
       type: DataTypes.INTEGER,
@@ -51,7 +46,22 @@ function defineModels() {
       defaultValue: 0,
       allowNull: false
     },
-    resources: {
+    rscWheat: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false
+    },
+    rscWood: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false
+    },
+    rscStone: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false
+    },
+    rscIron: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
       allowNull: false
@@ -71,6 +81,46 @@ function defineModels() {
       defaultValue: '0',
       allowNull: false
     },
+  })
+
+  const Faction = sequelize.define('Faction', {
+    name: {
+      type: DataTypes.STRING
+    },
+    xpMultiplier: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      defaultValue: 1
+    },
+    rscMultiplier: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      defaultValue: 1
+    },
+    pathToCrestImage: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: './images/default.png'
+    }
+  })
+
+  const Truce = sequelize.define('Truce', {
+    attackerId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    attackerDiscordId: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    defenderId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    defenderDiscordId: {
+      type: DataTypes.STRING,
+      allowNull: false
+    }
   })
 }
 
@@ -194,6 +244,163 @@ app.post('/gather', async (req, res) => {
     status: 'success',
     amount: gatheredAmount
   })
+})
+
+
+app.post('/create-truce', async (req, res) => {
+  const attackerDiscordId = req.body.attackerDiscordId
+  const defenderDiscordId = req.body.defenderDiscordId
+
+  const attacker = await sequelize.models.User.findOne({
+    where: {
+      discordId: attackerDiscordId
+    }
+  })
+
+  const defender = await sequelize.models.User.findOne({
+    where: {
+      discordId: defenderDiscordId
+    }
+  })
+
+  if (attacker === null) {
+    res.json({
+      status: 'error',
+      message: 'You have to be part of a faction to create a truce'
+    })
+
+    return
+  }
+
+  if (defender === null) {
+    res.json({
+      status: 'error',
+      message: 'Target has to be part of a faction to create a truce'
+    })
+
+    return
+  }
+
+  const alreadyExistingTruce = await sequelize.models.Truce.findOne({
+    where: {
+      attackerId: attacker.id,
+      attackerDiscordId,
+      defenderId: defender.id,
+      defenderDiscordId
+    }
+  })
+
+  if (alreadyExistingTruce !== null) {
+    res.json({
+      status: 'error',
+      message: 'You already have a truce with this target'
+    })
+
+    return
+  }
+
+
+  await sequelize.models.Truce.create({
+    attackerId: attacker.id,
+    attackerDiscordId,
+    defenderId: defender.id,
+    defenderDiscordId
+  })
+
+  res.json({
+    status: 'success'
+  })
+})
+
+app.post('/break-truce', async (req, res) => {
+  const attackerDiscordId = req.body.attackerDiscordId
+  const defenderDiscordId = req.body.defenderDiscordId
+
+  const attacker = await sequelize.models.User.findOne({
+    where: {
+      discordId: attackerDiscordId
+    }
+  })
+
+  const defender = await sequelize.models.User.findOne({
+    where: {
+      discordId: defenderDiscordId
+    }
+  })
+
+  if (attacker === null) {
+    res.json({
+      status: 'error',
+      message: 'You have to be part of a faction to break a truce'
+    })
+
+    return
+  }
+
+  if (defender === null) {
+    res.json({
+      status: 'error',
+      message: 'Target has to be part of a faction to break a truce'
+    })
+
+    return
+  }
+
+  const alreadyExistingTruce = await sequelize.models.Truce.findOne({
+    where: {
+      attackerId: attacker.id,
+      attackerDiscordId,
+      defenderId: defender.id,
+      defenderDiscordId
+    }
+  })
+
+  if (alreadyExistingTruce === null) {
+    res.json({
+      status: 'error',
+      message: 'No truce found to break with this target'
+    })
+
+    return
+  }
+
+
+  await alreadyExistingTruce.destroy()
+
+  res.json({
+    status: 'success'
+  })
+})
+
+app.post('/list-truces', async (req, res) => {
+  const discordId = req.body.discordId
+
+  const user = await sequelize.models.User.findOne({
+    where: {
+      discordId
+    }
+  })
+
+  if (user === null) {
+    res.json({
+      status: 'error',
+      message: 'You need to be part of a faction to list your truces'
+    })
+
+    return
+  }
+
+  const truces = await sequelize.models.Truce.findAll({
+    where: {
+      attackerDiscordId: discordId,
+      attackerId: user.id
+    }
+  })
+
+  res.json({
+    status: 'success',
+    truces
+  }) 
 })
 
 main()
