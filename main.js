@@ -138,8 +138,8 @@ async function main() {
   console.log('Running on port 4848') 
 }
 
-app.get('/user', async (req, res) => {
-  const discordId = req.query.discordId
+app.post('/user', async (req, res) => {
+  const discordId = req.body.discordId
   console.log(discordId)
 
   const user = await sequelize.models.User.findOne({
@@ -148,7 +148,18 @@ app.get('/user', async (req, res) => {
     }
   })
 
-  res.send({ user })
+  if (user) {
+    res.json({
+      'status': 'success',
+      'user': user
+    })
+  }
+  else {
+    res.json({
+      'status': 'error',
+      'message': 'User not found'
+    })
+  }
 })
 
 app.post('/choose-faction', async (req, res) => {
@@ -199,7 +210,6 @@ app.post('/choose-faction', async (req, res) => {
   }
 })
 
-
 app.post('/gather', async (req, res) => {
   const discordId = req.body.discordId
 
@@ -245,7 +255,6 @@ app.post('/gather', async (req, res) => {
     amount: gatheredAmount
   })
 })
-
 
 app.post('/create-truce', async (req, res) => {
   const attackerDiscordId = req.body.attackerDiscordId
