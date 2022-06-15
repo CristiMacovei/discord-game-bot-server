@@ -1,4 +1,5 @@
 const { gameConfig } = require('./game-config')
+const database = require('./database-connection')
 
 function getClassFromLevel(level) {
   if (typeof level !== 'number') {
@@ -19,19 +20,14 @@ function getClassFromLevel(level) {
   return null
 }
 
-async function listAvailableBuildings(user, sequelize) {
+async function listAvailableBuildings(user) {
   const userClass = getClassFromLevel(user.level)
-  console.log(userClass)
 
   let possibleBuildings = userClass.buildings
 
-  const alreadyOwnedBuildings = await sequelize.models.UserBuildings.findAll({
-    where: {
-      userId: user.id
-    }
-  })
+  const alreadyOwnedBuildings = await database.findBuildingsByUserId(user.id)
 
-  //? check if therer is no more space left on the map 
+  //? check if there is no more space left on the map 
   if (alreadyOwnedBuildings.length >= userClass.mapSize * userClass.mapSize) {
     return {
       status: 'success',
@@ -98,13 +94,7 @@ async function checkPosition(user, buildingId, row, col, sequelize) {
   }
 
   //? check if position is already occupied
-  const alreadyExistingBuilding = await sequelize.models.UserBuildings.findOne({
-    where: {
-      userId: user.id,
-      mapRow: row,
-      mapColumn: col
-    }
-  })
+  const alreadyExistingBuilding = await database.findBuildingAtPosition(user.id, row, col)
 
   // // if the building existing there is required for the current building, error out
   // if (alreadyExistingBuilding && gameConfig.buildings[buildingId].requires.some(b => b.id.toLowerCase() === alreadyExistingBuilding.id.toLowerCase())) {

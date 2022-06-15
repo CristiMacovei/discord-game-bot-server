@@ -1,194 +1,33 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
-const { Sequelize, DataTypes } = require('sequelize')
 
 const utils = require('./utils')
 const {gameConfig} = require('./game-config.js')
 const gameLogic = require('./game-logic.js')
 const imageUtils = require('./image-utils')
+const database = require('./database-connection.js')
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: './.sqlite3',
-})
 
 const app = express()
 app.use(cors())
 app.use(express.json())
-
-function defineModels() {
-  const User = sequelize.define('User', {
-    discordId: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true
-    },
-    adminPermissions: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false,
-    },
-    faction: {
-      type: DataTypes.INTEGER,
-      defaultValue: -1,
-      allowNull: false
-    },
-    rscMultiplier: {
-      type: DataTypes.FLOAT,
-      defaultValue: 1,
-      allowNull: false
-    },
-    xpMultiplier: {
-      type: DataTypes.FLOAT,
-      defaultValue: 1,
-      allowNull: false
-    },
-    level: {
-      type: DataTypes.INTEGER,
-      defaultValue: 1,
-      allowNull: false
-    },
-    xp: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false
-    },
-    gold: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false
-    },
-    rscWheat: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false
-    },
-    rscWood: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false
-    },
-    rscStone: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false
-    },
-    rscIron: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false
-    },
-    lastBuildInteractionUnixTime: {
-      type: DataTypes.STRING,
-      defaultValue: '0',
-      allowNull: false
-    },
-    lastFactionChangeUnixTime: {
-      type: DataTypes.STRING,
-      defaultValue: '0',
-      allowNull: false
-    },
-    lastGatherUnixTime: {
-      type: DataTypes.STRING,
-      defaultValue: '0',
-      allowNull: false
-    },
-  })
-
-  const UserBuildings = sequelize.define('UserBuildings', {
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    buildingId: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: false
-    },
-    mapRow: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    mapColumn: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    startTimestampUnixTime: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    durationMs: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 60 * 60 * 1000
-    }
-  })
-
-  const Faction = sequelize.define('Faction', {
-    name: {
-      type: DataTypes.STRING
-    },
-    xpMultiplier: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-      defaultValue: 1
-    },
-    rscMultiplier: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-      defaultValue: 1
-    },
-    pathToCrestImage: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: './images/default.png'
-    }
-  })
-
-  const Truce = sequelize.define('Truce', {
-    attackerId: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    attackerDiscordId: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    defenderId: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    defenderDiscordId: {
-      type: DataTypes.STRING,
-      allowNull: false
-    }
-  })
-}
 
 async function main() {
   app.listen('4848', () => {
     console.log('Server started on port 4848')
   })
 
-  await sequelize.authenticate()
+  await database.init()
   
-  defineModels()
-  await sequelize.sync()
-  
-  console.log('Connected to database')
   console.log('Running on port 4848') 
 }
 
 app.post('/user', async (req, res) => {
   const discordId = req.body.discordId
-  console.log(discordId)
+  console.log(`[INFO] Received request on /user from discordId: ${discordId}`)
 
-  const user = await sequelize.models.User.findOne({
-    where: {
-      discordId
-    }
-  })
+  const user = await database.findUserByDiscordId(discordId)
 
   if (user) {
     res.json({
@@ -208,14 +47,12 @@ app.post('/choose-faction', async (req, res) => {
   const discordId = req.body.discordId
   const newFaction = req.body.faction
 
-  const user = await sequelize.models.User.findOne({
-    where: {
-      discordId
-    }
-  })
+  console.log(`[INFO] Received request on /choose-faction from discordId: ${discordId}, trying to change factions to ${newFaction}`)
+
+  const user = await database.findUserByDiscordId(discordId)
 
   if (user === null) {
-    await sequelize.models.User.create({
+    await database.createUser({
       discordId,
       faction: newFaction
     })
@@ -255,11 +92,9 @@ app.post('/choose-faction', async (req, res) => {
 app.post('/gather', async (req, res) => {
   const discordId = req.body.discordId
 
-  const user = await sequelize.models.User.findOne({
-    where: {
-      discordId
-    }
-  })
+  console.log(`[INFO] Received request on /gather from discordId: ${discordId}`)
+
+  const user = await database.findUserByDiscordId(discordId)
 
   if (user === null) {
     res.json({
@@ -303,22 +138,14 @@ app.post('/gather', async (req, res) => {
   const baseIron = Math.random() * userClass.gatherAmount.iron
 
   //? get faction resource multiplier
-  console.log(user.faction)
-  const faction = await sequelize.models.Faction.findOne({
-    where: {
-      id: user.faction
-    }
-  })
+  const faction = await database.findFactionById(user.faction)
 
   if (faction === null) {
     res.json({
       status: 'error',
-      message: 'Unknown issue occured when trying to parse faction. Please report this to the developers (E-313@main.js)'
+      message: 'Unknown issue occured when trying to parse faction. Please report this to the developers (file: main.js, route /gather, code: E-146)'
     })
   }
-
-  console.log(faction.rscMultiplier)
-  console.log(user.rscMultiplier)
 
   //? take into account resource multipliers
   const wheat = Math.ceil(baseWheat * faction.rscMultiplier * user.rscMultiplier)
@@ -352,17 +179,11 @@ app.post('/create-truce', async (req, res) => {
   const attackerDiscordId = req.body.attackerDiscordId
   const defenderDiscordId = req.body.defenderDiscordId
 
-  const attacker = await sequelize.models.User.findOne({
-    where: {
-      discordId: attackerDiscordId
-    }
-  })
+  console.log(`[INFO] Received request on /create-truce from discordId: ${attackerDiscordId}, trying to create a truce with ${defenderDiscordId}`)
 
-  const defender = await sequelize.models.User.findOne({
-    where: {
-      discordId: defenderDiscordId
-    }
-  })
+  const attacker = await database.findUserByDiscordId(attackerDiscordId)
+
+  const defender = await database.findUserByDiscordId(defenderDiscordId)
 
   if (attacker === null) {
     res.json({
@@ -382,13 +203,11 @@ app.post('/create-truce', async (req, res) => {
     return
   }
 
-  const alreadyExistingTruce = await sequelize.models.Truce.findOne({
-    where: {
-      attackerId: attacker.id,
-      attackerDiscordId,
-      defenderId: defender.id,
-      defenderDiscordId
-    }
+  const alreadyExistingTruce = await database.findTruce({
+    attackerId: attacker.id,
+    attackerDiscordId,
+    defenderId: defender.id,
+    defenderDiscordId
   })
 
   if (alreadyExistingTruce !== null) {
@@ -400,8 +219,7 @@ app.post('/create-truce', async (req, res) => {
     return
   }
 
-
-  await sequelize.models.Truce.create({
+  await database.createTruce({
     attackerId: attacker.id,
     attackerDiscordId,
     defenderId: defender.id,
@@ -417,17 +235,11 @@ app.post('/break-truce', async (req, res) => {
   const attackerDiscordId = req.body.attackerDiscordId
   const defenderDiscordId = req.body.defenderDiscordId
 
-  const attacker = await sequelize.models.User.findOne({
-    where: {
-      discordId: attackerDiscordId
-    }
-  })
+  console.log(`[INFO] Received request on /break-truce from discordId: ${attackerDiscordId}, trying to break a truce with ${defenderDiscordId}`)
 
-  const defender = await sequelize.models.User.findOne({
-    where: {
-      discordId: defenderDiscordId
-    }
-  })
+  const attacker = await database.findUserByDiscordId(attackerDiscordId)
+
+  const defender = await database.findUserByDiscordId(defenderDiscordId)
 
   if (attacker === null) {
     res.json({
@@ -447,13 +259,11 @@ app.post('/break-truce', async (req, res) => {
     return
   }
 
-  const alreadyExistingTruce = await sequelize.models.Truce.findOne({
-    where: {
-      attackerId: attacker.id,
-      attackerDiscordId,
-      defenderId: defender.id,
-      defenderDiscordId
-    }
+  const alreadyExistingTruce = await database.findTruce({
+    attackerId: attacker.id,
+    attackerDiscordId,
+    defenderId: defender.id,
+    defenderDiscordId
   })
 
   if (alreadyExistingTruce === null) {
@@ -476,11 +286,9 @@ app.post('/break-truce', async (req, res) => {
 app.post('/list-truces', async (req, res) => {
   const discordId = req.body.discordId
 
-  const user = await sequelize.models.User.findOne({
-    where: {
-      discordId
-    }
-  })
+  console.log(`[INFO] Received request on /list-truces from discordId: ${discordId}`)
+
+  const user = await database.findUserByDiscordId(discordId)
 
   if (user === null) {
     res.json({
@@ -491,12 +299,7 @@ app.post('/list-truces', async (req, res) => {
     return
   }
 
-  const truces = await sequelize.models.Truce.findAll({
-    where: {
-      attackerDiscordId: discordId,
-      attackerId: user.id
-    }
-  })
+  const truces = await database.findTrucesByUserId(user.id)
 
   res.json({
     status: 'success',
@@ -508,11 +311,7 @@ app.post('/build-list', async (req, res) => {
   //? find user 
   const discordId = req.body.discordId
 
-  const user = await sequelize.models.User.findOne({
-    where: {
-      discordId
-    }
-  })
+  const user = await database.findUserByDiscordId(discordId)
 
   if (user === null) {
     res.json({
@@ -524,7 +323,7 @@ app.post('/build-list', async (req, res) => {
   }
 
   //? call the function from game logic
-  const response = await gameLogic.listAvailableBuildings(user, sequelize)
+  const response = await gameLogic.listAvailableBuildings(user)
 
   res.json(
     response
@@ -538,11 +337,7 @@ app.post('/build', async (req, res) => {
   const col = req.body.col
 
   //? find user 
-  const user = await sequelize.models.User.findOne({
-    where: {
-      discordId
-    }
-  })
+  const user = await database.findUserByDiscordId(discordId)
 
   if (user === null) {
     res.json({
@@ -554,7 +349,7 @@ app.post('/build', async (req, res) => {
   }
   
   //? get available buildings for this user 
-  const { status, buildings, message } = await gameLogic.listAvailableBuildings(user, sequelize)
+  const { status, buildings, message } = await gameLogic.listAvailableBuildings(user)
   if (status !== 'success') {
     res.json({
       status,
@@ -581,7 +376,7 @@ app.post('/build', async (req, res) => {
 
 
   //? check if the position is valid 
-  const positionStatus = await gameLogic.checkPosition(user, building.id, row, col, sequelize)
+  const positionStatus = await gameLogic.checkPosition(user, building.id, row, col)
 
   if (positionStatus.status !== 'success') {
     res.json({
@@ -594,7 +389,7 @@ app.post('/build', async (req, res) => {
 
   
   try {
-    const newBuilding = await sequelize.models.UserBuildings.create({
+    const newBuilding = await database.createBuilding({
       userId: user.id,
       buildingId: building.id,
       mapRow: row,
@@ -621,11 +416,7 @@ app.post('/kingdom-image', async (req, res) => {
   const discordId = req.body.discordId
 
   //? find user 
-  const user = await sequelize.models.User.findOne({
-    where: {
-      discordId
-    }
-  })
+  const user = await database.findUserByDiscordId(discordId)
 
   if (user === null) {
     res.json({
@@ -640,11 +431,7 @@ app.post('/kingdom-image', async (req, res) => {
   const userClass = gameLogic.getClassFromLevel(user.level)
 
   //? get user's buildings
-  const userBuildings = await sequelize.models.UserBuildings.findAll({
-    where: {
-      userId: user.id
-    }
-  })
+  const userBuildings = await database.findBuildingsByUserId(user.id)
 
   //? get image buffer 
   const imageBuffer = await imageUtils.buildKingdomImage(userClass.mapSize, userBuildings.map(building => {
