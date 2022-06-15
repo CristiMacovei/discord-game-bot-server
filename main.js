@@ -448,4 +448,37 @@ app.post('/kingdom-image', async (req, res) => {
   })
 })
 
+app.post('/build-status', async (req, res) => {
+  const discordId = req.body.discordId
+
+  //? find user
+  const user = await database.findUserByDiscordId(discordId)
+
+  if (user === null) {
+    res.json({
+      status: 'error',
+      message: 'Account not existing'
+    })
+  }
+
+  //? get user's buildings
+  const userBuildings = await database.findBuildingsByUserId(user.id)
+
+  const cTime = new Date().getTime()
+  const buildings = userBuildings
+  .map( ({ buildingId, mapRow, mapColumn, startTimestampUnixTime, durationMs }) => ({
+    name: gameConfig.buildings[buildingId].name,
+    row: mapRow,
+    col: mapColumn,
+    remainingMs: parseInt(startTimestampUnixTime) + durationMs - cTime,
+    remainingPeriod: utils.periodToString(parseInt(startTimestampUnixTime) + durationMs - cTime)
+  }))
+  .filter( ({remainingMs}) => remainingMs > 0)
+
+  res.json({
+    status: 'success',
+    buildings
+  })
+})
+
 main()
