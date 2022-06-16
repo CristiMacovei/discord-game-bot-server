@@ -131,7 +131,7 @@ async function init() {
     pathToCrestImage: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: './images/default.png'
+      defaultValue: './assets/factions/default.png'
     }
   })
 
@@ -181,6 +181,10 @@ async function findFactionById(id) {
       id
     }
   })
+}
+
+async function getFactions() {
+  return await sequelize.models.Faction.findAll()
 }
 
 async function createFaction(params) {
@@ -234,6 +238,7 @@ module.exports = {
   findUserByDiscordId,
   createUser,
   findFactionById,
+  getFactions,
   createFaction,
   findTruce,
   findTrucesByUserId,

@@ -481,4 +481,22 @@ app.post('/build-status', async (req, res) => {
   })
 })
 
+app.get('/factions', async (req, res) => {
+  const factions = await database.getFactions()
+
+  let factionsWithImages = []
+  for (let faction of factions) {
+    factionsWithImages.push({
+      name: faction.name,
+      description: '--demo--', //todo add this to the db
+      image: await imageUtils.loadImage(faction.pathToCrestImage, 256, 256)
+    })
+  }
+  
+  res.json({
+    status: 'success',
+    factions: factionsWithImages
+  })
+})
+
 main()

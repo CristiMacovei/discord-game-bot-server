@@ -64,5 +64,6 @@ async function buildKingdomImage(size, buildings) {
 }
 
 module.exports = {
-  buildKingdomImage
+  buildKingdomImage,
+  loadImage
 }
