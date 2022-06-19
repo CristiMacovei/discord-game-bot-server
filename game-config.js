@@ -221,7 +221,11 @@ const config = {
         "iron": 25
       }
     }
-  ]
+  ],
+
+  scout: {
+    levelDifference: 1
+  }
 }
 
 module.exports = {

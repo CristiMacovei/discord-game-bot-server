@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const { Op } = require('sequelize')
 
 const utils = require('./utils')
 const {gameConfig} = require('./game-config.js')
@@ -387,6 +388,9 @@ app.post('/build', async (req, res) => {
     return
   }
 
+  //? check if the user has enough resources to build the specific building
+  console.log(building.cost)
+
   
   try {
     const newBuilding = await database.createBuilding({
@@ -497,6 +501,39 @@ app.get('/factions', async (req, res) => {
     status: 'success',
     factions: factionsWithImages
   })
+})
+
+app.post('/scout', async (req, res) => {
+  const discordId = req.body.discordId
+
+  const user = await database.findUserByDiscordId(discordId)
+
+  if (user === null) {
+    res.json({
+      status: 'error',
+      message: 'Account not existing'
+    })
+
+    return
+  }
+
+  const players = await database.findUsers({
+    faction: {
+      [Op.ne]: user.faction
+    },
+    level: {
+      [Op.and]: [
+        { [Op.gte]: user.level - gameConfig.scout.levelDifference },
+        { [Op.lte]: user.level + gameConfig.scout.levelDifference }
+      ]
+    }
+  })
+
+  res.json({
+    status: 'success',
+    players: Array.from(players)
+  })
+
 })
 
 main()

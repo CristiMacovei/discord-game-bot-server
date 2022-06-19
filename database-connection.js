@@ -170,6 +170,12 @@ async function findUserByDiscordId(discordId) {
   })
 }
 
+async function findUsers(params) {
+  return await sequelize.models.User.findAll({
+    where: params
+  })
+}
+
 async function createUser(params) {
   return await sequelize.models.User.create(params)
 }
@@ -199,7 +205,7 @@ async function findTruce(params) {
 }
 
 async function findTrucesByUserId(userId) {
-  await sequelize.models.Truce.findAll({
+  return await sequelize.models.Truce.findAll({
     where: {
       attackerId: userId
     }
@@ -236,6 +242,7 @@ async function createBuilding(params) {
 module.exports = {
   init,
   findUserByDiscordId,
+  findUsers,
   createUser,
   findFactionById,
   getFactions,
