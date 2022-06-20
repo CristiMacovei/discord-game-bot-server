@@ -536,4 +536,103 @@ app.post('/scout', async (req, res) => {
 
 })
 
+app.post('/admin-set-level', async (req, res) => {
+  const adminId = req.body.adminId
+  const targetId = req.body.targetId
+  const level = req.body.level
+
+  const admin = await database.findUserByDiscordId(adminId)
+  if (!admin || admin.adminPermissions === 0) {
+    res.json({
+      status: 'error',
+      message: 'You are not an admin'
+    })
+
+    return
+  }
+
+  const target = await database.findUserByDiscordId(targetId)
+  if (!target) {
+    res.json({
+      status: 'error',
+      message: 'Target not existing'
+    })
+
+    return
+  }
+
+  const parsedLevel = parseInt(level)
+  if (isNaN(parsedLevel)) {
+    res.json({
+      status: 'error',
+      message: `${level} is not a number`
+    })
+
+    return 
+  }
+
+  target.level = parsedLevel
+  await target.save()
+
+  res.json({
+    status: 'success'
+  })
+})
+
+app.post('/admin-set-rsc', async (req, res) => {
+  const adminId = req.body.adminId
+  const targetId = req.body.targetId
+  const rscName = req.body.rscName
+  const amount = req.body.amount
+
+  const admin = await database.findUserByDiscordId(adminId)
+  if (!admin || admin.adminPermissions === 0) {
+    res.json({
+      status: 'error',
+      message: 'You are not an admin'
+    })
+
+    return
+  }
+
+  const target = await database.findUserByDiscordId(targetId)
+  if (!target) {
+    res.json({
+      status: 'error',
+      message: 'Target not existing'
+    })
+
+    return
+  }
+
+  const parsedAmount = parseInt(amount)
+  if (isNaN(parsedAmount)) {
+    res.json({
+      status: 'error',
+      message: `${amount} is not a number`
+    })
+
+    return 
+  }
+
+  let actualResourceName = 'rsc' + rscName.slice(0, 1).toUpperCase() + rscName.slice(1).toLowerCase()
+
+  if (typeof target[actualResourceName] === 'undefined') {
+    res.json({
+      status: 'error',
+      message: `${rscName} is not a valid resource name`
+    })
+
+    return 
+  }
+
+  target[actualResourceName] = parsedAmount
+  await target.save()
+
+  res.json({
+    status: 'success'
+  })
+})
+
+
 main()
