@@ -123,7 +123,7 @@ const config = {
     
   }, 
 
-  "classes": [
+  classes: [
     {
       name: "SERF",
       mapSize: 6,

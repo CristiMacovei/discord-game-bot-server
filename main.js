@@ -2,12 +2,15 @@ require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const { Op } = require('sequelize')
+const fs = require('fs/promises')
 
 const utils = require('./utils')
 const {gameConfig} = require('./game-config.js')
 const gameLogic = require('./game-logic.js')
 const imageUtils = require('./image-utils')
 const database = require('./database-connection.js')
+const variables = require('./game-variables.json')
+const { fdatasyncSync } = require('fs')
 
 
 const app = express()
@@ -33,7 +36,12 @@ app.post('/user', async (req, res) => {
   if (user) {
     res.json({
       'status': 'success',
-      'user': user
+      'user': {
+        discordId: user.discordId,
+        adminPermissions: user.adminPermissions,
+        faction: user.faction,
+        xp: user.xp
+      }
     })
   }
   else {
@@ -631,6 +639,41 @@ app.post('/admin-set-rsc', async (req, res) => {
 
   res.json({
     status: 'success'
+  })
+})
+
+app.post('/admin-set-xp-multiplier', async (req, res) => {
+  const adminId = req.body.adminId;
+  const target = req.body.target;
+  const amount = req.body.amount;
+
+  const admin = await database.findUserByDiscordId(adminId)
+  if (!admin || admin.adminPermissions === 0) {
+    res.json({
+      status: 'error',
+      message: 'You are not an admin'
+    })
+
+    return
+  }
+
+  const parsedAmount = parseFloat(amount)
+  if (isNaN(parsedAmount)) {
+    res.json({
+      status: 'error',
+      message: `${amount} is not a valid number`
+    })
+
+    return 
+  }
+
+  variables.xpMultiplier = parsedAmount;
+  
+  await fs.writeFile('./game-variables.json', JSON.stringify(variables))
+  
+  res.json({
+    'status': 'success',
+    'xpm': parsedAmount
   })
 })
 
