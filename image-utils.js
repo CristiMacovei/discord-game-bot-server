@@ -30,8 +30,50 @@ async function loadImage(path, width, height) {
 }
 
 async function buildKingdomImage(size, buildings) {
+  //? build a 2d array of the buildings
+  const matrix = [];
+  for (let i = 0; i < size; i++) {
+    matrix.push([]);
+
+    for (let j = 0; j < size; j++) {
+      matrix[i].push(undefined);
+    }
+  }
+
+  for (let {name, row, col} of buildings) {
+    matrix[row - 1][col - 1] = { name };
+  }
+  
   const buildingImages = []
   for (let {name, row, col} of buildings) {
+    //? send the extra info if there's a wall
+    if (name.includes('wall')) {
+      let trbl = 0b0000;
+
+      //? top ( bit 0 ) 
+      if (row > 1 && typeof matrix[row - 2][col - 1] !== 'undefined') {
+        trbl |= 0b0001;
+      }
+
+      //? right ( bit 1 )
+      if (col < size && typeof matrix[row - 1][col] !== 'undefined') {
+        trbl |= 0b0010;
+      }
+
+      //? bottom ( bit 2 )
+      if (row < size && typeof matrix[row][col - 1] !== 'undefined') {
+        trbl |= 0b0100;
+      }
+
+      //? left ( bit 3 )
+      if (col > 1 && typeof matrix[row - 1][col - 2] !== 'undefined') {
+        trbl |= 0b1000;
+      }
+
+      name += trbl.toString();
+    }
+
+
     const path = buildImagePath(name)
 
     buildingImages.push({
@@ -41,7 +83,7 @@ async function buildKingdomImage(size, buildings) {
     })
   }
 
-  console.log(buildingImages)
+  console.log(matrix)
 
   const image = await sharp('assets/maps/simple.jpg')
   .resize(MAP_SIZE, MAP_SIZE)

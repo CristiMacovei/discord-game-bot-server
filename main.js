@@ -442,6 +442,8 @@ app.post('/kingdom-image', async (req, res) => {
   //? get user class
   const userClass = gameLogic.getClassFromLevel(user.level)
 
+  console.log(userClass)
+
   //? get user's buildings
   const userBuildings = await database.findBuildingsByUserId(user.id)
 

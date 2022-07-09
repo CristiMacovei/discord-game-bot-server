@@ -172,6 +172,7 @@ const config = {
     },
     {
       name: "Knight",
+      mapSize: 8,
       levels: {
         min: 26,
         max: 50,
@@ -189,6 +190,7 @@ const config = {
     },
     {
       "name": "Noble",
+      mapSize: 10,
       "levels": {
         "min": 51,
         "max": 75,
@@ -206,6 +208,7 @@ const config = {
     },
     {
       "name": "King",
+      mapSize: 12,
       "levels": {
         "min": 76,
         "max": 100,
