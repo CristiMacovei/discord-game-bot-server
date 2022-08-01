@@ -25,65 +25,38 @@ function buildImagePath(buildingId) {
   return null
 }
 
-async function loadImage(path, width, height) {
-  return await sharp(path).resize(width, height).toBuffer()
+async function loadImage(path, width, height, orientation = 0) {
+  return await sharp(path).resize(width, height).rotate(orientation).toBuffer()
 }
 
 async function buildKingdomImage(size, buildings) {
-  //? build a 2d array of the buildings
-  const matrix = [];
-  for (let i = 0; i < size; i++) {
-    matrix.push([]);
+  const underUpgrade = await loadImage('assets/other/under-construction.png', TILE_SIZE * .6, TILE_SIZE * .6);
 
-    for (let j = 0; j < size; j++) {
-      matrix[i].push(undefined);
-    }
-  }
-
-  for (let {name, row, col} of buildings) {
-    matrix[row - 1][col - 1] = { name };
-  }
-  
   const buildingImages = []
-  for (let {name, row, col} of buildings) {
-    //? send the extra info if there's a wall
-    if (name.includes('wall')) {
-      let trbl = 0b0000;
+  for (let building of buildings) {
+    const path = buildImagePath(building.buildingId)
 
-      //? top ( bit 0 ) 
-      if (row > 1 && typeof matrix[row - 2][col - 1] !== 'undefined') {
-        trbl |= 0b0001;
-      }
+    console.log(building)
 
-      //? right ( bit 1 )
-      if (col < size && typeof matrix[row - 1][col] !== 'undefined') {
-        trbl |= 0b0010;
-      }
-
-      //? bottom ( bit 2 )
-      if (row < size && typeof matrix[row][col - 1] !== 'undefined') {
-        trbl |= 0b0100;
-      }
-
-      //? left ( bit 3 )
-      if (col > 1 && typeof matrix[row - 1][col - 2] !== 'undefined') {
-        trbl |= 0b1000;
-      }
-
-      name += trbl.toString();
-    }
-
-
-    const path = buildImagePath(name)
+    building.orientation = 90 * Math.floor((building.orientation % 360) / 90);
 
     buildingImages.push({
-      image: await loadImage(path, TILE_SIZE, TILE_SIZE),
-      row,
-      col
-    })
+      image: await loadImage(path, TILE_SIZE, TILE_SIZE, building.orientation),
+      row: building.mapRow,
+      col: building.mapColumn
+    });
+
+    if (building.startTimestampUnixTime + building.durationMs > new Date().getTime()) {
+      buildingImages.push({
+        image: underUpgrade,
+        row: building.mapRow,
+        col: building.mapColumn,
+        isIcon: true
+      })
+    }
   }
 
-  console.log(matrix)
+  console.log(buildingImages)
 
   const image = await sharp('assets/maps/simple.jpg')
   .resize(MAP_SIZE, MAP_SIZE)
@@ -94,10 +67,10 @@ async function buildKingdomImage(size, buildings) {
     height: MAP_SIZE / NUM_TILES * size
   })
   .composite(
-    buildingImages.map( ({image, row, col}) => ({
+    buildingImages.map( ({image, row, col, isIcon}) => ({
       input: image,
-      left: TILE_SIZE * (col - 1),
-      top: TILE_SIZE * (row - 1)
+      left: TILE_SIZE * (col - 1) + (isIcon === true ? TILE_SIZE * .2 : 0),
+      top: TILE_SIZE * (row - 1) + (isIcon === true ? TILE_SIZE * .2 : 0)
     }))
   )
   .toBuffer()

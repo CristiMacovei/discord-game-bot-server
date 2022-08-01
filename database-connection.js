@@ -95,6 +95,11 @@ async function init() {
       allowNull: false,
       unique: false
     },
+    orientation: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    },
     mapRow: {
       type: DataTypes.INTEGER,
       allowNull: false
@@ -104,7 +109,7 @@ async function init() {
       allowNull: false
     },
     startTimestampUnixTime: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     durationMs: {
@@ -156,7 +161,7 @@ async function init() {
 
   await sequelize.authenticate()
 
-  await sequelize.sync()
+  await sequelize.sync({force : false})
   
   console.log('Connected to database')
 }

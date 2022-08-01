@@ -10,8 +10,6 @@ const gameLogic = require('./game-logic.js')
 const imageUtils = require('./image-utils')
 const database = require('./database-connection.js')
 const variables = require('./game-variables.json')
-const { fdatasyncSync } = require('fs')
-
 
 const app = express()
 app.use(cors())
@@ -36,12 +34,7 @@ app.post('/user', async (req, res) => {
   if (user) {
     res.json({
       'status': 'success',
-      'user': {
-        discordId: user.discordId,
-        adminPermissions: user.adminPermissions,
-        faction: user.faction,
-        xp: user.xp
-      }
+      user
     })
   }
   else {
@@ -344,6 +337,7 @@ app.post('/build', async (req, res) => {
   const buildingName = req.body.buildingName
   const row = req.body.row
   const col = req.body.col
+  const orientation = req.body.orientation ?? 0;
 
   //? find user 
   const user = await database.findUserByDiscordId(discordId)
@@ -406,14 +400,15 @@ app.post('/build', async (req, res) => {
       buildingId: building.id,
       mapRow: row,
       mapColumn: col,
-      startTimestampUnixTime: new Date().getTime()
+      startTimestampUnixTime: new Date().getTime(),
+      orientation
     })
   
     await newBuilding.save()
   
     res.json({
       status: 'success',
-      building: gameConfig.buildings[building.id]      
+      building: newBuilding     
     })
   } catch (exc) {
     res.json({
@@ -448,13 +443,7 @@ app.post('/kingdom-image', async (req, res) => {
   const userBuildings = await database.findBuildingsByUserId(user.id)
 
   //? get image buffer 
-  const imageBuffer = await imageUtils.buildKingdomImage(userClass.mapSize, userBuildings.map(building => {
-    return {
-      name: building.buildingId,
-      row: building.mapRow,
-      col: building.mapColumn
-    }
-  }))
+  const imageBuffer = await imageUtils.buildKingdomImage(userClass.mapSize, userBuildings)
 
   res.json({
     status: 'success',
