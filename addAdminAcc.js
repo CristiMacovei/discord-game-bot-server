@@ -1,28 +1,27 @@
 const database = require('./database-connection');
 
 async function wrapper() {
-  await database.init()
+  await database.init();
 
-  const target = process.argv[2].toString()
-  console.log(target)
+  const target = process.argv[2].toString();
+  console.log(target);
 
   if (!target) {
     console.log('No target specified.');
     process.exit(1);
   }
 
-  const user = await database.findUserByDiscordId(target)
+  const user = await database.findUserByDiscordId(target);
 
   if (!user) {
     console.log('No user found.');
     process.exit(1);
   }
 
-  user.adminPermissions = 1
-  await user.save()
+  user.adminPermissions = 1;
+  await user.save();
 
-  console.log(`${user.discordId} is now an admin.`)
+  console.log(`${user.discordId} is now an admin.`);
 }
 
-wrapper()
-
+wrapper();

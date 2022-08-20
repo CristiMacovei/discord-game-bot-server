@@ -1,5 +1,5 @@
-const { gameConfig } = require("./game-config");
-const database = require("./database-connection");
+const { gameConfig } = require('./game-config');
+const database = require('./database-connection');
 
 function findAttackableRange(userLevel) {
   const scoutGreatestLevel = Math.min(
@@ -13,12 +13,12 @@ function findAttackableRange(userLevel) {
 
   return {
     max: scoutGreatestLevel,
-    min: scoutLowestLevel,
+    min: scoutLowestLevel
   };
 }
 
 function getClassFromLevel(level) {
-  if (typeof level !== "number") {
+  if (typeof level !== 'number') {
     return null;
   }
 
@@ -58,8 +58,8 @@ async function listAvailableBuildings(user) {
   //? check if there is no more space left on the map
   if (alreadyOwnedBuildings.length >= userClass.mapSize * userClass.mapSize) {
     return {
-      status: "success",
-      buildings: [],
+      status: 'success',
+      buildings: []
     };
   }
 
@@ -67,7 +67,7 @@ async function listAvailableBuildings(user) {
 
   possibleBuildings = possibleBuildings.filter(({ id, limit }) => {
     //? check if limit has already been reached
-    if (typeof limit !== "undefined") {
+    if (typeof limit !== 'undefined') {
       let alreadyOwnedCount = 0;
 
       alreadyOwnedBuildings.forEach((ownedBuilding) => {
@@ -103,10 +103,10 @@ async function listAvailableBuildings(user) {
   });
 
   return {
-    status: "success",
+    status: 'success',
     buildings: possibleBuildings.map((building) => {
       return gameConfig.buildings[building.id];
-    }),
+    })
   };
 }
 
@@ -118,8 +118,8 @@ async function checkPosition(user, buildingId, row, col, sequelize) {
 
   if (row <= 0 || row > mapSize || col <= 0 || col > mapSize) {
     return {
-      status: "error",
-      message: "Invalid position",
+      status: 'error',
+      message: 'Invalid position'
     };
   }
 
@@ -140,10 +140,10 @@ async function checkPosition(user, buildingId, row, col, sequelize) {
 
   if (alreadyExistingBuilding) {
     return {
-      status: "error",
+      status: 'error',
       message: `Space occupied by ${
         gameConfig.buildings[alreadyExistingBuilding.buildingId].name
-      }, please remove it first`,
+      }, please remove it first`
     };
   }
 
@@ -151,7 +151,7 @@ async function checkPosition(user, buildingId, row, col, sequelize) {
   // todo special case for the weapons
 
   return {
-    status: "success",
+    status: 'success'
   };
 }
 
@@ -175,5 +175,5 @@ module.exports = {
   checkResources,
   findAttackableRange,
   findBuildingStats,
-  rng,
+  rng
 };

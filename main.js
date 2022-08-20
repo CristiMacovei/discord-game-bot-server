@@ -1,31 +1,31 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const { Op } = require("sequelize");
-const fs = require("fs/promises");
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { Op } = require('sequelize');
+const fs = require('fs/promises');
 
-const utils = require("./utils");
-const { gameConfig } = require("./game-config.js");
-const gameLogic = require("./game-logic.js");
-const imageUtils = require("./image-utils");
-const database = require("./database-connection.js");
-const variables = require("./game-variables.json");
+const utils = require('./utils');
+const { gameConfig } = require('./game-config.js');
+const gameLogic = require('./game-logic.js');
+const imageUtils = require('./image-utils');
+const database = require('./database-connection.js');
+const variables = require('./game-variables.json');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 async function main() {
-  app.listen("4848", () => {
-    console.log("Server started on port 4848");
+  app.listen('4848', () => {
+    console.log('Server started on port 4848');
   });
 
   await database.init();
 
-  console.log("Running on port 4848");
+  console.log('Running on port 4848');
 }
 
-app.post("/user", async (req, res) => {
+app.post('/user', async (req, res) => {
   const discordId = req.body.discordId;
   console.log(`[INFO] Received request on /user from discordId: ${discordId}`);
 
@@ -33,21 +33,21 @@ app.post("/user", async (req, res) => {
 
   if (user) {
     res.json({
-      status: "success",
+      status: 'success',
       user: {
         ...user.dataValues,
-        class: gameLogic.getClassFromLevel(user.level),
-      },
+        class: gameLogic.getClassFromLevel(user.level)
+      }
     });
   } else {
     res.json({
-      status: "error",
-      message: "User not found",
+      status: 'error',
+      message: 'User not found'
     });
   }
 });
 
-app.post("/choose-faction", async (req, res) => {
+app.post('/choose-faction', async (req, res) => {
   const discordId = req.body.discordId;
   const newFaction = req.body.faction;
 
@@ -60,11 +60,11 @@ app.post("/choose-faction", async (req, res) => {
   if (user === null) {
     await database.createUser({
       discordId,
-      faction: newFaction,
+      faction: newFaction
     });
 
     res.json({
-      status: "success",
+      status: 'success'
     });
   } else {
     const cTime = new Date().getTime();
@@ -76,10 +76,10 @@ app.post("/choose-faction", async (req, res) => {
 
     if (cTime - lastChange < _30days) {
       res.json({
-        status: "error",
+        status: 'error',
         message: `You must wait \`${utils.periodToString(
           _30days - (cTime - lastChange)
-        )}\` before changing factions again`,
+        )}\` before changing factions again`
       });
 
       return;
@@ -91,12 +91,12 @@ app.post("/choose-faction", async (req, res) => {
     await user.save();
 
     res.json({
-      status: "success",
+      status: 'success'
     });
   }
 });
 
-app.post("/gather", async (req, res) => {
+app.post('/gather', async (req, res) => {
   const discordId = req.body.discordId;
 
   console.log(
@@ -107,8 +107,8 @@ app.post("/gather", async (req, res) => {
 
   if (user === null) {
     res.json({
-      status: "error",
-      message: "Account not existing",
+      status: 'error',
+      message: 'Account not existing'
     });
 
     return;
@@ -123,10 +123,10 @@ app.post("/gather", async (req, res) => {
 
   if (cTime - lastGather < _1hour) {
     res.json({
-      status: "error",
+      status: 'error',
       message: `You must wait \`${utils.periodToString(
         _1hour - (cTime - lastGather)
-      )}\` before gathering again`,
+      )}\` before gathering again`
     });
 
     return;
@@ -136,9 +136,9 @@ app.post("/gather", async (req, res) => {
 
   if (userClass === null) {
     res.json({
-      status: "error",
+      status: 'error',
       message:
-        "Unknown issue occured when trying to parse user class. Please report this to the developers (E-253@main.js)",
+        'Unknown issue occured when trying to parse user class. Please report this to the developers (E-253@main.js)'
     });
 
     return;
@@ -154,9 +154,9 @@ app.post("/gather", async (req, res) => {
 
   if (faction === null) {
     res.json({
-      status: "error",
+      status: 'error',
       message:
-        "Unknown issue occured when trying to parse faction. Please report this to the developers (file: main.js, route /gather, code: E-146)",
+        'Unknown issue occured when trying to parse faction. Please report this to the developers (file: main.js, route /gather, code: E-146)'
     });
   }
 
@@ -178,25 +178,25 @@ app.post("/gather", async (req, res) => {
   await user.save();
 
   res.json({
-    status: "success",
+    status: 'success',
     gathered: {
       wheat,
       wood,
       stone,
-      iron,
+      iron
     },
     multipliers: {
       faction: faction.rscMultiplier,
-      own: user.rscMultiplier,
+      own: user.rscMultiplier
     },
     user: {
       ...user.dataValues,
-      class: gameLogic.getClassFromLevel(user.level),
-    },
+      class: gameLogic.getClassFromLevel(user.level)
+    }
   });
 });
 
-app.post("/create-truce", async (req, res) => {
+app.post('/create-truce', async (req, res) => {
   const attackerDiscordId = req.body.attackerDiscordId;
   const defenderDiscordId = req.body.defenderDiscordId;
 
@@ -210,8 +210,8 @@ app.post("/create-truce", async (req, res) => {
 
   if (attacker === null) {
     res.json({
-      status: "error",
-      message: "You have to be part of a faction to create a truce",
+      status: 'error',
+      message: 'You have to be part of a faction to create a truce'
     });
 
     return;
@@ -219,8 +219,8 @@ app.post("/create-truce", async (req, res) => {
 
   if (defender === null) {
     res.json({
-      status: "error",
-      message: "Target has to be part of a faction to create a truce",
+      status: 'error',
+      message: 'Target has to be part of a faction to create a truce'
     });
 
     return;
@@ -230,13 +230,13 @@ app.post("/create-truce", async (req, res) => {
     attackerId: attacker.id,
     attackerDiscordId,
     defenderId: defender.id,
-    defenderDiscordId,
+    defenderDiscordId
   });
 
   if (alreadyExistingTruce !== null) {
     res.json({
-      status: "error",
-      message: "You already have a truce with this target",
+      status: 'error',
+      message: 'You already have a truce with this target'
     });
 
     return;
@@ -246,15 +246,15 @@ app.post("/create-truce", async (req, res) => {
     attackerId: attacker.id,
     attackerDiscordId,
     defenderId: defender.id,
-    defenderDiscordId,
+    defenderDiscordId
   });
 
   res.json({
-    status: "success",
+    status: 'success'
   });
 });
 
-app.post("/break-truce", async (req, res) => {
+app.post('/break-truce', async (req, res) => {
   const attackerDiscordId = req.body.attackerDiscordId;
   const defenderDiscordId = req.body.defenderDiscordId;
 
@@ -268,8 +268,8 @@ app.post("/break-truce", async (req, res) => {
 
   if (attacker === null) {
     res.json({
-      status: "error",
-      message: "You have to be part of a faction to break a truce",
+      status: 'error',
+      message: 'You have to be part of a faction to break a truce'
     });
 
     return;
@@ -277,8 +277,8 @@ app.post("/break-truce", async (req, res) => {
 
   if (defender === null) {
     res.json({
-      status: "error",
-      message: "Target has to be part of a faction to break a truce",
+      status: 'error',
+      message: 'Target has to be part of a faction to break a truce'
     });
 
     return;
@@ -288,13 +288,13 @@ app.post("/break-truce", async (req, res) => {
     attackerId: attacker.id,
     attackerDiscordId,
     defenderId: defender.id,
-    defenderDiscordId,
+    defenderDiscordId
   });
 
   if (alreadyExistingTruce === null) {
     res.json({
-      status: "error",
-      message: "No truce found to break with this target",
+      status: 'error',
+      message: 'No truce found to break with this target'
     });
 
     return;
@@ -303,11 +303,11 @@ app.post("/break-truce", async (req, res) => {
   await alreadyExistingTruce.destroy();
 
   res.json({
-    status: "success",
+    status: 'success'
   });
 });
 
-app.post("/list-truces", async (req, res) => {
+app.post('/list-truces', async (req, res) => {
   const discordId = req.body.discordId;
 
   console.log(
@@ -318,8 +318,8 @@ app.post("/list-truces", async (req, res) => {
 
   if (user === null) {
     res.json({
-      status: "error",
-      message: "You need to be part of a faction to list your truces",
+      status: 'error',
+      message: 'You need to be part of a faction to list your truces'
     });
 
     return;
@@ -328,12 +328,12 @@ app.post("/list-truces", async (req, res) => {
   const truces = await database.findTrucesByUserId(user.id);
 
   res.json({
-    status: "success",
-    truces,
+    status: 'success',
+    truces
   });
 });
 
-app.post("/build-list", async (req, res) => {
+app.post('/build-list', async (req, res) => {
   //? find user
   const discordId = req.body.discordId;
 
@@ -341,8 +341,8 @@ app.post("/build-list", async (req, res) => {
 
   if (user === null) {
     res.json({
-      status: "error",
-      message: "Account not existing",
+      status: 'error',
+      message: 'Account not existing'
     });
 
     return;
@@ -354,7 +354,7 @@ app.post("/build-list", async (req, res) => {
   res.json(response);
 });
 
-app.post("/build", async (req, res) => {
+app.post('/build', async (req, res) => {
   const discordId = req.body.discordId;
   const buildingName = req.body.buildingName;
   const row = req.body.row;
@@ -366,8 +366,8 @@ app.post("/build", async (req, res) => {
 
   if (user === null) {
     res.json({
-      status: "error",
-      message: "Account not existing",
+      status: 'error',
+      message: 'Account not existing'
     });
 
     return;
@@ -377,10 +377,10 @@ app.post("/build", async (req, res) => {
   const { status, buildings, message } = await gameLogic.listAvailableBuildings(
     user
   );
-  if (status !== "success") {
+  if (status !== 'success') {
     res.json({
       status,
-      message,
+      message
     });
 
     return;
@@ -391,13 +391,13 @@ app.post("/build", async (req, res) => {
     (b) => b.name.toLowerCase() === buildingName.toLowerCase()
   );
 
-  console.log("Found", building);
+  console.log('Found', building);
 
   //? if nothing is found error out
-  if (typeof building === "undefined") {
+  if (typeof building === 'undefined') {
     res.json({
-      status: "error",
-      message: "No building available with the name " + buildingName,
+      status: 'error',
+      message: 'No building available with the name ' + buildingName
     });
 
     return;
@@ -411,10 +411,10 @@ app.post("/build", async (req, res) => {
     col
   );
 
-  if (positionStatus.status !== "success") {
+  if (positionStatus.status !== 'success') {
     res.json({
       status: positionStatus.status,
-      message: positionStatus.message,
+      message: positionStatus.message
     });
 
     return;
@@ -424,8 +424,8 @@ app.post("/build", async (req, res) => {
   console.log(building.cost);
   if (!gameLogic.checkResources(user, building.cost)) {
     res.json({
-      status: "error",
-      message: "Not enough resources to build this building",
+      status: 'error',
+      message: 'Not enough resources to build this building'
     });
 
     return;
@@ -438,7 +438,7 @@ app.post("/build", async (req, res) => {
       mapRow: row,
       mapColumn: col,
       startTimestampUnixTime: new Date().getTime(),
-      orientation,
+      orientation
     });
 
     await newBuilding.save();
@@ -451,18 +451,18 @@ app.post("/build", async (req, res) => {
     await user.save();
 
     res.json({
-      status: "success",
-      building: newBuilding,
+      status: 'success',
+      building: newBuilding
     });
   } catch (exc) {
     res.json({
-      status: "error",
-      message: `Something went wrong: ${exc}`,
+      status: 'error',
+      message: `Something went wrong: ${exc}`
     });
   }
 });
 
-app.post("/kingdom-image", async (req, res) => {
+app.post('/kingdom-image', async (req, res) => {
   const discordId = req.body.discordId;
 
   //? find user
@@ -470,8 +470,8 @@ app.post("/kingdom-image", async (req, res) => {
 
   if (user === null) {
     res.json({
-      status: "error",
-      message: "Account not existing",
+      status: 'error',
+      message: 'Account not existing'
     });
 
     return;
@@ -492,12 +492,12 @@ app.post("/kingdom-image", async (req, res) => {
   );
 
   res.json({
-    status: "success",
-    image: imageBuffer,
+    status: 'success',
+    image: imageBuffer
   });
 });
 
-app.post("/build-status", async (req, res) => {
+app.post('/build-status', async (req, res) => {
   const discordId = req.body.discordId;
 
   //? find user
@@ -505,8 +505,8 @@ app.post("/build-status", async (req, res) => {
 
   if (user === null) {
     res.json({
-      status: "error",
-      message: "Account not existing",
+      status: 'error',
+      message: 'Account not existing'
     });
   }
 
@@ -521,7 +521,7 @@ app.post("/build-status", async (req, res) => {
         mapRow,
         mapColumn,
         startTimestampUnixTime,
-        durationMs,
+        durationMs
       }) => ({
         name: gameConfig.buildings[buildingId].name,
         row: mapRow,
@@ -529,44 +529,44 @@ app.post("/build-status", async (req, res) => {
         remainingMs: parseInt(startTimestampUnixTime) + durationMs - cTime,
         remainingPeriod: utils.periodToString(
           parseInt(startTimestampUnixTime) + durationMs - cTime
-        ),
+        )
       })
     )
     .filter(({ remainingMs }) => remainingMs > 0);
 
   res.json({
-    status: "success",
-    buildings,
+    status: 'success',
+    buildings
   });
 });
 
-app.get("/factions", async (req, res) => {
+app.get('/factions', async (req, res) => {
   const factions = await database.getFactions();
 
   let factionsWithImages = [];
   for (let faction of factions) {
     factionsWithImages.push({
       name: faction.name,
-      description: "--demo--", //todo add this to the db
-      image: await imageUtils.loadImage(faction.pathToCrestImage, 256, 256),
+      description: '--demo--', //todo add this to the db
+      image: await imageUtils.loadImage(faction.pathToCrestImage, 256, 256)
     });
   }
 
   res.json({
-    status: "success",
-    factions: factionsWithImages,
+    status: 'success',
+    factions: factionsWithImages
   });
 });
 
-app.post("/scout", async (req, res) => {
+app.post('/scout', async (req, res) => {
   const discordId = req.body.discordId;
 
   const user = await database.findUserByDiscordId(discordId);
 
   if (user === null) {
     res.json({
-      status: "error",
-      message: "Account not existing",
+      status: 'error',
+      message: 'Account not existing'
     });
 
     return;
@@ -576,23 +576,23 @@ app.post("/scout", async (req, res) => {
 
   const players = await database.findUsers({
     faction: {
-      [Op.ne]: user.faction,
+      [Op.ne]: user.faction
     },
     level: {
       [Op.and]: [
         { [Op.gte]: attackableRange.min },
-        { [Op.lte]: attackableRange.max },
-      ],
-    },
+        { [Op.lte]: attackableRange.max }
+      ]
+    }
   });
 
   res.json({
-    status: "success",
-    players: Array.from(players),
+    status: 'success',
+    players: Array.from(players)
   });
 });
 
-app.post("/create-attack", async (req, res) => {
+app.post('/create-attack', async (req, res) => {
   const attackerDiscordId = req.body.attackerDiscordId;
   const defenderDiscordId = req.body.defenderDiscordId;
 
@@ -606,8 +606,8 @@ app.post("/create-attack", async (req, res) => {
 
   if (attacker === null) {
     res.json({
-      status: "error",
-      message: "You have to be part of a faction to create an attack",
+      status: 'error',
+      message: 'You have to be part of a faction to create an attack'
     });
 
     return;
@@ -615,8 +615,8 @@ app.post("/create-attack", async (req, res) => {
 
   if (defender === null) {
     res.json({
-      status: "error",
-      message: "Target has to be part of a faction to create an attack",
+      status: 'error',
+      message: 'Target has to be part of a faction to create an attack'
     });
 
     return;
@@ -637,11 +637,12 @@ app.post("/create-attack", async (req, res) => {
 
   const delta = attackerPower - defenderPower;
   const diceRoll = gameLogic.rng(6);
-  const coinFlip = gameLogic.rng(2) === 1;
+  const coinFlip = undefined;
 
   let damage = delta * (diceRoll / 4);
 
   if (Math.abs(damage) < 1) {
+    coinFlip = gameLogic.rng(2) === 1;
     if (coinFlip) {
       damage = 1;
     } else {
@@ -670,25 +671,25 @@ app.post("/create-attack", async (req, res) => {
   const newAttack = await database.createAttack({
     attackerId: attacker.id,
     defenderId: defender.id,
-    damage,
+    damage
   });
 
   newAttack.save();
 
   res.json({
-    status: "success",
+    status: 'success',
     results: {
-      damage,
+      damage
     },
     details: {
       diceRoll,
       delta,
-      coinFlip,
-    },
+      coinFlip
+    }
   });
 });
 
-app.post("/admin-set-level", async (req, res) => {
+app.post('/admin-set-level', async (req, res) => {
   const adminId = req.body.adminId;
   const targetId = req.body.targetId;
   const level = req.body.level;
@@ -696,8 +697,8 @@ app.post("/admin-set-level", async (req, res) => {
   const admin = await database.findUserByDiscordId(adminId);
   if (!admin || admin.adminPermissions === 0) {
     res.json({
-      status: "error",
-      message: "You are not an admin",
+      status: 'error',
+      message: 'You are not an admin'
     });
 
     return;
@@ -706,8 +707,8 @@ app.post("/admin-set-level", async (req, res) => {
   const target = await database.findUserByDiscordId(targetId);
   if (!target) {
     res.json({
-      status: "error",
-      message: "Target not existing",
+      status: 'error',
+      message: 'Target not existing'
     });
 
     return;
@@ -716,8 +717,8 @@ app.post("/admin-set-level", async (req, res) => {
   const parsedLevel = parseInt(level);
   if (isNaN(parsedLevel)) {
     res.json({
-      status: "error",
-      message: `${level} is not a number`,
+      status: 'error',
+      message: `${level} is not a number`
     });
 
     return;
@@ -727,11 +728,11 @@ app.post("/admin-set-level", async (req, res) => {
   await target.save();
 
   res.json({
-    status: "success",
+    status: 'success'
   });
 });
 
-app.post("/admin-set-rsc", async (req, res) => {
+app.post('/admin-set-rsc', async (req, res) => {
   const adminId = req.body.adminId;
   const targetId = req.body.targetId;
   const rscName = req.body.rscName;
@@ -740,8 +741,8 @@ app.post("/admin-set-rsc", async (req, res) => {
   const admin = await database.findUserByDiscordId(adminId);
   if (!admin || admin.adminPermissions === 0) {
     res.json({
-      status: "error",
-      message: "You are not an admin",
+      status: 'error',
+      message: 'You are not an admin'
     });
 
     return;
@@ -750,8 +751,8 @@ app.post("/admin-set-rsc", async (req, res) => {
   const target = await database.findUserByDiscordId(targetId);
   if (!target) {
     res.json({
-      status: "error",
-      message: "Target not existing",
+      status: 'error',
+      message: 'Target not existing'
     });
 
     return;
@@ -760,20 +761,20 @@ app.post("/admin-set-rsc", async (req, res) => {
   const parsedAmount = parseInt(amount);
   if (isNaN(parsedAmount)) {
     res.json({
-      status: "error",
-      message: `${amount} is not a number`,
+      status: 'error',
+      message: `${amount} is not a number`
     });
 
     return;
   }
 
   let actualResourceName =
-    "rsc" + rscName.slice(0, 1).toUpperCase() + rscName.slice(1).toLowerCase();
+    'rsc' + rscName.slice(0, 1).toUpperCase() + rscName.slice(1).toLowerCase();
 
-  if (typeof target[actualResourceName] === "undefined") {
+  if (typeof target[actualResourceName] === 'undefined') {
     res.json({
-      status: "error",
-      message: `${rscName} is not a valid resource name`,
+      status: 'error',
+      message: `${rscName} is not a valid resource name`
     });
 
     return;
@@ -783,11 +784,11 @@ app.post("/admin-set-rsc", async (req, res) => {
   await target.save();
 
   res.json({
-    status: "success",
+    status: 'success'
   });
 });
 
-app.post("/admin-set-xp-multiplier", async (req, res) => {
+app.post('/admin-set-xp-multiplier', async (req, res) => {
   const adminId = req.body.adminId;
   const target = req.body.target;
   const amount = req.body.amount;
@@ -795,8 +796,8 @@ app.post("/admin-set-xp-multiplier", async (req, res) => {
   const admin = await database.findUserByDiscordId(adminId);
   if (!admin || admin.adminPermissions === 0) {
     res.json({
-      status: "error",
-      message: "You are not an admin",
+      status: 'error',
+      message: 'You are not an admin'
     });
 
     return;
@@ -805,8 +806,8 @@ app.post("/admin-set-xp-multiplier", async (req, res) => {
   const parsedAmount = parseFloat(amount);
   if (isNaN(parsedAmount)) {
     res.json({
-      status: "error",
-      message: `${amount} is not a valid number`,
+      status: 'error',
+      message: `${amount} is not a valid number`
     });
 
     return;
@@ -814,11 +815,11 @@ app.post("/admin-set-xp-multiplier", async (req, res) => {
 
   variables.xpMultiplier = parsedAmount;
 
-  await fs.writeFile("./game-variables.json", JSON.stringify(variables));
+  await fs.writeFile('./game-variables.json', JSON.stringify(variables));
 
   res.json({
-    status: "success",
-    xpm: parsedAmount,
+    status: 'success',
+    xpm: parsedAmount
   });
 });
 
