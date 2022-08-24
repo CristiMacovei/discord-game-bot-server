@@ -276,6 +276,18 @@ async function findAttacksByUserId(userId, asDefender = false) {
   });
 }
 
+async function findMostRecentAttack(attackerId, defenderId) {
+  return await sequelize.models.UserAttacks.findOne({
+    where: {
+      attackerId: attackerId,
+      defenderId: defenderId, 
+    },
+    order: [
+      ['timestampUnixTime', 'DESC']
+    ]
+  });
+}
+
 async function createAttack({ attackerId, defenderId, damage }) {
   return await sequelize.models.UserAttacks.create({
     attackerId,
@@ -300,5 +312,6 @@ module.exports = {
   findBuildingAtPosition,
   createBuilding,
   findAttacksByUserId,
+  findMostRecentAttack,
   createAttack
 };

@@ -222,6 +222,10 @@ const config = {
 
   scout: {
     levelDifference: 1
+  },
+
+  attacks: {
+    cooldownMilliseconds: 6 * 60 * 60 * 1000 // 6 hours
   }
 };
 

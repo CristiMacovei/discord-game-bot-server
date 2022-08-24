@@ -622,6 +622,17 @@ app.post('/create-attack', async (req, res) => {
     return;
   }
 
+  // check if there's been any recent attack
+  const recentAttack = await database.findMostRecentAttack(attacker.id, defender.id);
+  if (recentAttack && (new Date().getTime() - recentAttack.timestampUnixTime) <= gameConfig.attacks.cooldownMilliseconds) {
+    res.json({
+      status: 'error',
+      message: `You have to wait another ${utils.periodToString(gameConfig.attacks.cooldownMilliseconds - (new Date().getTime() - recentAttack.timestampUnixTime))}`
+    })
+
+    return;
+  }
+
   const attackerBuildings = await database.findBuildingsByUserId(attacker.id);
   const defenderBuildings = await database.findBuildingsByUserId(defender.id);
 
@@ -637,7 +648,7 @@ app.post('/create-attack', async (req, res) => {
 
   const delta = attackerPower - defenderPower;
   const diceRoll = gameLogic.rng(6);
-  const coinFlip = undefined;
+  let coinFlip = undefined;
 
   let damage = delta * (diceRoll / 4);
 
