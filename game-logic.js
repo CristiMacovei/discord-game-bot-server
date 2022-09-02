@@ -102,6 +102,8 @@ async function listAvailableBuildings(user) {
     return true;
   });
 
+  console.log(possibleBuildings);
+
   return {
     status: 'success',
     buildings: possibleBuildings.map((building) => {

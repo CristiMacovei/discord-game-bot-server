@@ -25,6 +25,12 @@ async function main() {
   console.log('Running on port 4848');
 }
 
+app.get('/ping', async (req, res) => {
+  res.json({
+    status: 'success'
+  });
+});
+
 app.post('/user', async (req, res) => {
   const discordId = req.body.discordId;
   console.log(`[INFO] Received request on /user from discordId: ${discordId}`);
@@ -158,6 +164,8 @@ app.post('/gather', async (req, res) => {
       message:
         'Unknown issue occured when trying to parse faction. Please report this to the developers (file: main.js, route /gather, code: E-146)'
     });
+
+    return;
   }
 
   //? take into account resource multipliers
@@ -349,7 +357,7 @@ app.post('/build-list', async (req, res) => {
   }
 
   //? call the function from game logic
-  const response = await gameLogic.listAvailableBuildings(user);
+  const response = { ...(await gameLogic.listAvailableBuildings(user)), user };
 
   res.json(response);
 });
@@ -435,6 +443,7 @@ app.post('/build', async (req, res) => {
     const newBuilding = await database.createBuilding({
       userId: user.id,
       buildingId: building.id,
+      durationMs: building.buildDuration ?? 60 * 60 * 1000,
       mapRow: row,
       mapColumn: col,
       startTimestampUnixTime: new Date().getTime(),
@@ -623,12 +632,22 @@ app.post('/create-attack', async (req, res) => {
   }
 
   // check if there's been any recent attack
-  const recentAttack = await database.findMostRecentAttack(attacker.id, defender.id);
-  if (recentAttack && (new Date().getTime() - recentAttack.timestampUnixTime) <= gameConfig.attacks.cooldownMilliseconds) {
+  const recentAttack = await database.findMostRecentAttack(
+    attacker.id,
+    defender.id
+  );
+  if (
+    recentAttack &&
+    new Date().getTime() - recentAttack.timestampUnixTime <=
+      gameConfig.attacks.cooldownMilliseconds
+  ) {
     res.json({
       status: 'error',
-      message: `You have to wait another ${utils.periodToString(gameConfig.attacks.cooldownMilliseconds - (new Date().getTime() - recentAttack.timestampUnixTime))}`
-    })
+      message: `You have to wait another ${utils.periodToString(
+        gameConfig.attacks.cooldownMilliseconds -
+          (new Date().getTime() - recentAttack.timestampUnixTime)
+      )}`
+    });
 
     return;
   }

@@ -13,7 +13,8 @@ const config = {
         attack: 5,
         defense: 5
       },
-      requires: []
+      requires: [],
+      buildDuration: 10 * 60 * 1000
     }, // serf keep
     serf_church: {
       name: 'Church',
@@ -28,7 +29,8 @@ const config = {
         attack: 2,
         defense: 3
       },
-      requires: []
+      requires: [],
+      buildDuration: 80 * 60 * 1000
     }, // serf church
     serf_home: {
       name: 'Home',
@@ -43,7 +45,8 @@ const config = {
         attack: 1,
         defense: 4
       },
-      requires: []
+      requires: [],
+      buildDuration: 60 * 60 * 1000
     }, // serf home
     serf_barracks: {
       name: 'Barracks',
@@ -58,7 +61,8 @@ const config = {
         attack: 7,
         defense: 3
       },
-      requires: []
+      requires: [],
+      buildDuration: 60 * 60 * 1000
     }, // serf barracks
     serf_gatehouse: {
       name: 'Gatehouse',
@@ -73,7 +77,8 @@ const config = {
         attack: 5,
         defense: 5
       },
-      requires: ['serf_keep', 'serf_church', 'serf_home', 'serf_barracks']
+      requires: ['serf_keep', 'serf_church', 'serf_home', 'serf_barracks'],
+      buildDuration: 60 * 60 * 1000
     }, // serf gatehouse
     serf_wall: {
       name: 'Wall',
