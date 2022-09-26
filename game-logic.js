@@ -161,6 +161,28 @@ function findBuildingStats(buildingId) {
   return gameConfig.buildings[buildingId];
 }
 
+function calculateAttackXpGains(attackerLevel, defenderLevel, damage) {
+  const attackerClass = getClassFromLevel(attackerLevel).name;
+  const defenderClass = getClassFromLevel(defenderLevel).name;
+
+  const refName = `${attackerClass}-${defenderClass}`;
+
+  return {
+    attacker: gameConfig.attacks.xpEarned[refName][damage > 0 ? 'win' : 'lose'],
+    defender: gameConfig.attacks.xpEarned[refName][damage < 0 ? 'win' : 'lose']
+  };
+}
+
+function updateUserLevel(user) {
+  const cls = getClassFromLevel(user.level);
+
+  if (user.xp >= cls.levels.delta) {
+    user.level++;
+    user.xp -= cls.levels.delta;
+    updateUserLevel(user);
+  }
+}
+
 // 1 to limit
 function rng(limit, iterations = 4) {
   let picks = [];
@@ -177,5 +199,7 @@ module.exports = {
   checkResources,
   findAttackableRange,
   findBuildingStats,
+  calculateAttackXpGains,
+  updateUserLevel,
   rng
 };

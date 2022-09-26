@@ -230,7 +230,73 @@ const config = {
   },
 
   attacks: {
-    cooldownMilliseconds: 6 * 60 * 60 * 1000 // 6 hours
+    cooldownMilliseconds: 6 * 60 * 60 * 1000, // 6 hours
+    xpEarned: {
+      'SERF-SERF': {
+        win: 5,
+        lose: -2
+      },
+      'SERF-Knight': {
+        win: 10,
+        lose: -4
+      },
+      'SERF-Noble': {
+        win: 15,
+        lose: -6
+      },
+      'SERF-King': {
+        win: 20,
+        lose: -8
+      },
+      'Knight-SERF': {
+        win: 10,
+        lose: -4
+      },
+      'Knight-Knight': {
+        win: 15,
+        lose: -6
+      },
+      'Knight-Noble': {
+        win: 20,
+        lose: -8
+      },
+      'Knight-King': {
+        win: 25,
+        lose: -10
+      },
+      'Noble-SERF': {
+        win: 15,
+        lose: -6
+      },
+      'Noble-Knight': {
+        win: 20,
+        lose: -8
+      },
+      'Noble-Noble': {
+        win: 25,
+        lose: -10
+      },
+      'Noble-King': {
+        win: 30,
+        lose: -12
+      },
+      'King-SERF': {
+        win: 20,
+        lose: -8
+      },
+      'King-Knight': {
+        win: 25,
+        lose: -10
+      },
+      'King-Noble': {
+        win: 30,
+        lose: -12
+      },
+      'King-King': {
+        win: 35,
+        lose: -14
+      }
+    }
   }
 };
 

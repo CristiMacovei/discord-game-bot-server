@@ -681,22 +681,29 @@ app.post('/create-attack', async (req, res) => {
   }
 
   damage = Math.floor(damage);
+  const xpGains = gameLogic.calculateAttackXpGains(
+    attacker.level,
+    defender.level,
+    damage
+  );
+
   if (damage >= 1) {
     // attacker wins
-    defender.xp = Math.max(0, defender.xp - damage);
-    attacker.xp = attacker.xp + damage;
 
-    // await attacker.save();
-    // await defender.save();
+    defender.xp = Math.max(0, defender.xp + xpGains.defender);
+    attacker.xp = attacker.xp + xpGains.attacker;
   } else {
-    attacker.xp = Math.max(0, defender.xp - damage);
-    defender.xp = attacker.xp + damage;
+    // defender wins
 
-    // await attacker.save();
-    // await defender.save();
+    attacker.xp = Math.max(0, defender.xp + xpGains.attacker);
+    defender.xp = attacker.xp + xpGains.defender;
   }
-  // todo save new states
-  // todo update levels and stuff
+
+  gameLogic.updateUserLevel(attacker);
+  await attacker.save();
+
+  gameLogic.updateUserLevel(defender);
+  await defender.save();
 
   const newAttack = await database.createAttack({
     attackerId: attacker.id,
@@ -709,7 +716,8 @@ app.post('/create-attack', async (req, res) => {
   res.json({
     status: 'success',
     results: {
-      damage
+      damage,
+      xpGains
     },
     details: {
       diceRoll,
