@@ -657,12 +657,18 @@ app.post('/create-attack', async (req, res) => {
 
   let attackerPower = 0;
   for (let building of attackerBuildings) {
-    attackerPower += gameConfig.buildings[building.buildingId].stats.attack;
+    attackerPower +=
+      (gameConfig.buildings[building.buildingId].stats.attack *
+        building.integrity) /
+      100;
   }
 
   let defenderPower = 0;
   for (let building of defenderBuildings) {
-    defenderPower += gameConfig.buildings[building.buildingId].stats.attack;
+    defenderPower +=
+      (gameConfig.buildings[building.buildingId].stats.attack *
+        building.integrity) /
+      100;
   }
 
   const delta = attackerPower - defenderPower;
@@ -692,6 +698,23 @@ app.post('/create-attack', async (req, res) => {
 
     defender.xp = Math.max(0, defender.xp + xpGains.defender);
     attacker.xp = attacker.xp + xpGains.attacker;
+
+    // spread damage
+    const damageUnit = 1;
+    for (let i = 1; i <= damage; i += damageUnit) {
+      const filteredBuildings = defenderBuildings.filter(
+        (b) => b.integrity > 0
+      );
+
+      const index = gameLogic.rng(filteredBuildings.length) - 1;
+      let damagedBuilding = filteredBuildings[index];
+
+      damagedBuilding.integrity = Math.max(
+        0,
+        damagedBuilding.integrity - damageUnit // todo wtf should happen here
+      );
+    }
+    defenderBuildings.forEach(async (b) => await b.save());
   } else {
     // defender wins
 
@@ -705,13 +728,13 @@ app.post('/create-attack', async (req, res) => {
   gameLogic.updateUserLevel(defender);
   await defender.save();
 
-  const newAttack = await database.createAttack({
-    attackerId: attacker.id,
-    defenderId: defender.id,
-    damage
-  });
+  // const newAttack = await database.createAttack({
+  //   attackerId: attacker.id,
+  //   defenderId: defender.id,
+  //   damage
+  // });
 
-  newAttack.save();
+  // newAttack.save();
 
   res.json({
     status: 'success',

@@ -39,7 +39,7 @@ async function init() {
       allowNull: false
     },
     xp: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.FLOAT,
       defaultValue: 0,
       allowNull: false
     },
@@ -116,6 +116,11 @@ async function init() {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 60 * 60 * 1000
+    },
+    integrity: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      defaultValue: 100
     }
   });
 
@@ -180,7 +185,7 @@ async function init() {
 
   await sequelize.authenticate();
 
-  await sequelize.sync({});
+  await sequelize.sync({ alter: false });
 
   console.log('Connected to database');
 }
@@ -280,11 +285,9 @@ async function findMostRecentAttack(attackerId, defenderId) {
   return await sequelize.models.UserAttacks.findOne({
     where: {
       attackerId: attackerId,
-      defenderId: defenderId, 
+      defenderId: defenderId
     },
-    order: [
-      ['timestampUnixTime', 'DESC']
-    ]
+    order: [['timestampUnixTime', 'DESC']]
   });
 }
 
