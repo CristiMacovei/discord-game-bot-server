@@ -356,8 +356,18 @@ app.post('/build-list', async (req, res) => {
     return;
   }
 
+  const newBuildings = await gameLogic.listAvailableBuildings(user);
+  const repairableBuildings = await gameLogic.listRepairableBuildings(user);
+
   //? call the function from game logic
-  const response = { ...(await gameLogic.listAvailableBuildings(user)), user };
+  const response = {
+    status: 'success',
+    repairableBuildings,
+    newBuildings,
+    user
+  };
+
+  console.log('Responding ', response);
 
   res.json(response);
 });
@@ -712,6 +722,7 @@ app.post('/create-attack', async (req, res) => {
       damagedBuilding.integrity = Math.max(
         0,
         damagedBuilding.integrity - damageUnit // todo wtf should happen here
+        // todo based on the defender's building def power
       );
     }
     defenderBuildings.forEach(async (b) => await b.save());

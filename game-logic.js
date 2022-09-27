@@ -104,12 +104,20 @@ async function listAvailableBuildings(user) {
 
   console.log(possibleBuildings);
 
-  return {
-    status: 'success',
-    buildings: possibleBuildings.map((building) => {
-      return gameConfig.buildings[building.id];
-    })
-  };
+  return possibleBuildings.map((building) => {
+    return gameConfig.buildings[building.id];
+  });
+}
+
+async function listRepairableBuildings(user) {
+  const userBuildings = await database.findBuildingsByUserId(user.id);
+
+  return userBuildings
+    .filter((building) => building.integrity < 100)
+    .map((building) => ({
+      integrity: building.integrity,
+      ...gameConfig.buildings[building.buildingId]
+    }));
 }
 
 async function checkPosition(user, buildingId, row, col, sequelize) {
@@ -194,6 +202,7 @@ function rng(limit, iterations = 4) {
 
 module.exports = {
   listAvailableBuildings,
+  listRepairableBuildings,
   getClassFromLevel,
   checkPosition,
   checkResources,
