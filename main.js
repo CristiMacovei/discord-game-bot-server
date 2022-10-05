@@ -481,6 +481,73 @@ app.post('/build', async (req, res) => {
   }
 });
 
+app.post('/repair', async (req, res) => {
+  const discordId = req.body.discordId;
+
+  const row = req.body.row;
+  const col = req.body.col;
+
+  //? find user
+  const user = await database.findUserByDiscordId(discordId);
+
+  if (user === null) {
+    res.json({
+      status: 'error',
+      message: 'Account not existing'
+    });
+
+    return;
+  }
+
+  //? find building
+  const building = await database.findBuildingAtPosition(user.id, row, col);
+
+  if (!building) {
+    res.json({
+      status: 'error',
+      message: 'No building found at this position'
+    });
+
+    return;
+  }
+
+  //? check if the building is repairable
+  if (100 - building.integrity < 1) {
+    res.json({
+      status: 'error',
+      message: 'This building is already at 100% integrity'
+    });
+
+    return;
+  }
+
+  //? check if the user has enough resources to repair the building
+  const repairCost = gameLogic.calculateRepairCost(building);
+  if (!gameLogic.checkResources(user, repairCost)) {
+    res.json({
+      status: 'error',
+      message: 'Not enough resources to repair this building'
+    });
+
+    return;
+  }
+
+  //? repair the building
+  building.integrity = 100;
+  //todo add repair duration
+  await building.save();
+
+  user.rscWheat -= repairCost.wheat;
+  user.rscWood -= repairCost.wood;
+  user.rscStone -= repairCost.stone;
+  user.rscIron -= repairCost.iron;
+  await user.save();
+
+  res.json({
+    status: 'success'
+  });
+});
+
 app.post('/kingdom-image', async (req, res) => {
   const discordId = req.body.discordId;
 

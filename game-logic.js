@@ -48,6 +48,17 @@ function checkResources(user, cost) {
   );
 }
 
+function calculateRepairCost(building) {
+  const normalCost = gameConfig.buildings[building.buildingId].cost;
+
+  return {
+    wheat: Math.floor((normalCost.wheat * (100 - building.integrity)) / 100),
+    wood: Math.floor((normalCost.wood * (100 - building.integrity)) / 100),
+    stone: Math.floor((normalCost.stone * (100 - building.integrity)) / 100),
+    iron: Math.floor((normalCost.iron * (100 - building.integrity)) / 100)
+  };
+}
+
 async function listAvailableBuildings(user) {
   const userClass = getClassFromLevel(user.level);
 
@@ -116,7 +127,14 @@ async function listRepairableBuildings(user) {
     .filter((building) => building.integrity < 100)
     .map((building) => ({
       integrity: building.integrity,
-      ...gameConfig.buildings[building.buildingId]
+      row: building.mapRow,
+      col: building.mapColumn,
+      name: gameConfig.buildings[building.buildingId].name,
+      buildDuration:
+        (gameConfig.buildings[building.buildingId].buildDuration *
+          (100 - building.integrity)) /
+        100,
+      cost: calculateRepairCost(building)
     }));
 }
 
@@ -203,6 +221,7 @@ function rng(limit, iterations = 4) {
 module.exports = {
   listAvailableBuildings,
   listRepairableBuildings,
+  calculateRepairCost,
   getClassFromLevel,
   checkPosition,
   checkResources,
