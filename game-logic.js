@@ -48,6 +48,17 @@ function checkResources(user, cost) {
   );
 }
 
+function calculateResourcesTaken(damage, defPower, wheat, wood, stone, iron) {
+  const percent = 0.5 * Math.min(damage / defPower, 1);
+
+  return {
+    wheat: Math.floor(wheat * percent),
+    wood: Math.floor(wood * percent),
+    stone: Math.floor(stone * percent),
+    iron: Math.floor(iron * percent)
+  };
+}
+
 function calculateRepairCost(building) {
   const normalCost = gameConfig.buildings[building.buildingId].cost;
 
@@ -113,11 +124,14 @@ async function listAvailableBuildings(user) {
     return true;
   });
 
-  console.log(possibleBuildings);
+  console.log('pb', possibleBuildings);
 
-  return possibleBuildings.map((building) => {
-    return gameConfig.buildings[building.id];
-  });
+  return {
+    status: 'success',
+    buildings: possibleBuildings.map(
+      (building) => gameConfig.buildings[building.id]
+    )
+  };
 }
 
 async function listRepairableBuildings(user) {
@@ -228,6 +242,7 @@ module.exports = {
   findAttackableRange,
   findBuildingStats,
   calculateAttackXpGains,
+  calculateResourcesTaken,
   updateUserLevel,
   rng
 };

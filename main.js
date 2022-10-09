@@ -356,8 +356,10 @@ app.post('/build-list', async (req, res) => {
     return;
   }
 
-  const newBuildings = await gameLogic.listAvailableBuildings(user);
-  const repairableBuildings = await gameLogic.listRepairableBuildings(user);
+  const newBuildings =
+    (await gameLogic.listAvailableBuildings(user))?.buildings ?? [];
+  const repairableBuildings =
+    (await gameLogic.listRepairableBuildings(user)) ?? [];
 
   //? call the function from game logic
   const response = {
@@ -395,6 +397,7 @@ app.post('/build', async (req, res) => {
   const { status, buildings, message } = await gameLogic.listAvailableBuildings(
     user
   );
+  console.log('buildings', buildings);
   if (status !== 'success') {
     res.json({
       status,
@@ -428,6 +431,8 @@ app.post('/build', async (req, res) => {
     row,
     col
   );
+
+  console.log('Position status', positionStatus);
 
   if (positionStatus.status !== 'success') {
     res.json({
@@ -748,6 +753,9 @@ app.post('/create-attack', async (req, res) => {
       100;
   }
 
+  console.log('Attacker power: ', attackerPower);
+  console.log('Defender power: ', defenderPower);
+
   const delta = attackerPower - defenderPower;
   const diceRoll = gameLogic.rng(6);
   let coinFlip = undefined;
@@ -770,11 +778,37 @@ app.post('/create-attack', async (req, res) => {
     damage
   );
 
+  let resourcesTaken = {
+    wheat: 0,
+    wood: 0,
+    stone: 0,
+    iron: 0
+  };
   if (damage >= 1) {
     // attacker wins
 
     defender.xp = Math.max(0, defender.xp + xpGains.defender);
     attacker.xp = attacker.xp + xpGains.attacker;
+
+    // calc resources taken from defender
+    resourcesTaken = gameLogic.calculateResourcesTaken(
+      damage,
+      defenderPower,
+      defender.rscWheat,
+      defender.rscWood,
+      defender.rscStone,
+      defender.rscIron
+    );
+
+    defender.rscWheat = Math.max(0, defender.rscWheat - resourcesTaken.wheat);
+    defender.rscWood = Math.max(0, defender.rscWood - resourcesTaken.wood);
+    defender.rscStone = Math.max(0, defender.rscStone - resourcesTaken.stone);
+    defender.rscIron = Math.max(0, defender.rscIron - resourcesTaken.iron);
+
+    attacker.rscWheat = attacker.rscWheat + resourcesTaken.wheat;
+    attacker.rscWood = attacker.rscWood + resourcesTaken.wood;
+    attacker.rscStone = attacker.rscStone + resourcesTaken.stone;
+    attacker.rscIron = attacker.rscIron + resourcesTaken.iron;
 
     // spread damage
     const damageUnit = 1;
@@ -818,7 +852,8 @@ app.post('/create-attack', async (req, res) => {
     status: 'success',
     results: {
       damage,
-      xpGains
+      xpGains,
+      resourcesTaken
     },
     details: {
       diceRoll,
