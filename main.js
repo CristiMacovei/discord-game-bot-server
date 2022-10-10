@@ -962,6 +962,49 @@ app.post('/admin-set-rsc', async (req, res) => {
   });
 });
 
+app.post('/admin-set-xp', async (req, res) => {
+  const adminId = req.body.adminId;
+  const targetId = req.body.targetId;
+  const value = req.body.value;
+  const relative = req.body.relative;
+
+  const admin = await database.findUserByDiscordId(adminId);
+  if (!admin || admin.adminPermissions === 0) {
+    res.json({
+      status: 'error',
+      message: 'You are not an admin'
+    });
+
+    return;
+  }
+
+  const target = await database.findUserByDiscordId(targetId);
+  if (!target) {
+    res.json({
+      status: 'error',
+      message: 'User not found'
+    });
+  }
+
+  if (relative !== 0) {
+    target.xp += value * relative;
+  } else {
+    target.xp = value;
+  }
+  // clamp xp to [0, delta)
+  target.xp = Math.min(
+    Math.max(target.xp, 0),
+    gameLogic.getClassFromLevel(target.level).levels.delta - 1
+  );
+
+  await target.save();
+
+  res.json({
+    status: 'success',
+    user: target
+  });
+});
+
 app.post('/admin-set-xp-multiplier', async (req, res) => {
   const adminId = req.body.adminId;
   const target = req.body.target;
@@ -987,14 +1030,133 @@ app.post('/admin-set-xp-multiplier', async (req, res) => {
     return;
   }
 
-  variables.xpMultiplier = parsedAmount;
+  const clampedXPM = Math.min(Math.max(parsedAmount, 0), 10);
 
-  await fs.writeFile('./game-variables.json', JSON.stringify(variables));
+  if (target.type === 'all') {
+    variables.xpMultiplier = clampedXPM;
 
-  res.json({
-    status: 'success',
-    xpm: parsedAmount
-  });
+    await fs.writeFile('./game-variables.json', JSON.stringify(variables));
+
+    res.json({
+      status: 'success',
+      xpm: clampedXPM
+    });
+  } else if (target.type === 'member') {
+    const targetUser = await database.findUserByDiscordId(target.id);
+
+    if (!targetUser) {
+      res.json({
+        status: 'error',
+        message: 'Target not found'
+      });
+
+      return;
+    }
+
+    targetUser.xpMultiplier = clampedXPM;
+    await targetUser.save();
+
+    res.json({
+      status: 'success',
+      xpm: clampedXPM
+    });
+  } else if (target.type === 'faction') {
+    const faction = await database.findFactionById(target.id);
+
+    if (!faction) {
+      res.json({
+        status: 'error',
+        message: 'Target faction not found'
+      });
+
+      return;
+    }
+
+    faction.xpMultiplier = clampedXPM;
+    await faction.save();
+
+    res.json({
+      status: 'success',
+      xpm: clampedXPM
+    });
+  }
+});
+
+app.post('/admin-set-rsc-multiplier', async (req, res) => {
+  const adminId = req.body.adminId;
+  const target = req.body.target;
+  const amount = req.body.amount;
+
+  const admin = await database.findUserByDiscordId(adminId);
+  if (!admin || admin.adminPermissions === 0) {
+    res.json({
+      status: 'error',
+      message: 'You are not an admin'
+    });
+
+    return;
+  }
+
+  const parsedAmount = parseFloat(amount);
+  if (isNaN(parsedAmount)) {
+    res.json({
+      status: 'error',
+      message: `${amount} is not a valid number`
+    });
+
+    return;
+  }
+
+  const clampedRM = Math.min(Math.max(parsedAmount, 0), 10);
+
+  if (target.type === 'all') {
+    variables.rscMultiplier = clampedRM;
+
+    await fs.writeFile('./game-variables.json', JSON.stringify(variables));
+
+    res.json({
+      status: 'success',
+      rm: clampedRM
+    });
+  } else if (target.type === 'member') {
+    const targetUser = await database.findUserByDiscordId(target.id);
+
+    if (!targetUser) {
+      res.json({
+        status: 'error',
+        message: 'Target not found'
+      });
+
+      return;
+    }
+
+    targetUser.rscMultiplier = clampedRM;
+    await targetUser.save();
+
+    res.json({
+      status: 'success',
+      rm: clampedRM
+    });
+  } else if (target.type === 'faction') {
+    const faction = await database.findFactionById(target.id);
+
+    if (!faction) {
+      res.json({
+        status: 'error',
+        message: 'Target faction not found'
+      });
+
+      return;
+    }
+
+    faction.rscMultiplier = clampedRM;
+    await faction.save();
+
+    res.json({
+      status: 'success',
+      rm: clampedRM
+    });
+  }
 });
 
 main();
